@@ -88,7 +88,7 @@ The script includes comprehensive error handling and will:
 ## Notes
 
 - The script uses pagination (2000 items per page) to handle large libraries efficiently
-- The script filters items by content type name containing "Link" or matching "Link to a Document"
+- The script filters items by exact match of "Link to a Document" content type name or by Content Type ID pattern "0x0105*"
 - All dates are exported in the format they are stored in SharePoint
 - The CSV file is encoded in UTF-8 format
 
