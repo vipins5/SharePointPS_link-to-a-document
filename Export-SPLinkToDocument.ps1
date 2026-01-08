@@ -85,27 +85,41 @@ function Export-LinkToDocumentItems {
         Write-Host "Total items retrieved: $($allItems.Count)" -ForegroundColor Yellow
         
         # Filter for "Link to a Document" content type
-        # The content type name can be "Link to a Document" or similar
+        # The content type name is typically "Link to a Document"
+        # Content Type ID starts with 0x0105 for Link to a Document
         $linkItems = $allItems | Where-Object { 
-            $_.ContentType.Name -like "*Link*" -or 
-            $_.ContentType.Name -eq "Link to a Document" 
+            $_.ContentType.Name -eq "Link to a Document" -or
+            $_.ContentType.Id -like "0x0105*"
         }
         
         if ($linkItems.Count -eq 0) {
             Write-Warning "No 'Link to a Document' items found in the library"
             Write-Host "Available content types found:" -ForegroundColor Yellow
             $allItems | Select-Object -ExpandProperty ContentType -Unique | ForEach-Object {
-                Write-Host "  - $($_.Name)" -ForegroundColor Gray
+                Write-Host "  - $($_.Name) (ID: $($_.Id))" -ForegroundColor Gray
             }
             return
         }
         
         Write-Host "Found $($linkItems.Count) 'Link to a Document' items" -ForegroundColor Green
         
-        # Create export data array
-        $exportData = @()
+        # Create export data using ArrayList for better performance
+        $exportData = [System.Collections.ArrayList]::new()
         
         foreach ($item in $linkItems) {
+            # Safely get lookup values with null checks
+            $createdBy = if ($item["Author"] -and $item["Author"].LookupValue) { 
+                $item["Author"].LookupValue 
+            } else { 
+                "" 
+            }
+            
+            $modifiedBy = if ($item["Editor"] -and $item["Editor"].LookupValue) { 
+                $item["Editor"].LookupValue 
+            } else { 
+                "" 
+            }
+            
             $exportItem = [PSCustomObject]@{
                 ID = $item.Id
                 Title = $item["Title"]
@@ -114,13 +128,13 @@ function Export-LinkToDocumentItems {
                 URLDescription = $item["URLDescription"]
                 ContentType = $item.ContentType.Name
                 Created = $item["Created"]
-                CreatedBy = $item["Author"].LookupValue
+                CreatedBy = $createdBy
                 Modified = $item["Modified"]
-                ModifiedBy = $item["Editor"].LookupValue
+                ModifiedBy = $modifiedBy
                 FilePath = $item["FileRef"]
             }
             
-            $exportData += $exportItem
+            $null = $exportData.Add($exportItem)
         }
         
         # Export to CSV
